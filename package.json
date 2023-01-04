@@ -1,0 +1,14 @@
+{
+  "name": "mynavi-crawling",
+  "private": true,
+  "author": {
+    "name": "mynavi-crawling",
+    "url": "https://github.com/Kishikawa1286/mynavi-crawling"
+  },
+  "type": "module",
+  "dependencies": {
+    "csv-writer": "^1.6.0",
+    "email-regex": "^5.0.0",
+    "node-fetch": "^3.3.0"
+  }
+}
