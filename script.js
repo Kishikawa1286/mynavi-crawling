@@ -1,28 +1,16 @@
 import { createObjectCsvWriter } from 'csv-writer';
-import emailRegex from 'email-regex';
-import * as fs from 'fs';
+import { readFileSync, readdirSync } from 'fs';
 import fetch from 'node-fetch';
 
-// assets のファイル一覧
-// これらのファイルから URL を抜き出す
-const htmlFileNames = [
-  './assets/マイナビ2024 - 検索結果.html',
-  './assets/マイナビ2024 - 検索結果1.html',
-  './assets/マイナビ2024 - 検索結果2.html',
-  './assets/マイナビ2024 - 検索結果3.html',
-  './assets/マイナビ2024 - 検索結果4.html',
-  './assets/マイナビ2024 - 検索結果5.html',
-  './assets/マイナビ2024 - 検索結果6.html',
-];
-
-// is.html の URL を html ファイルから抜き出す
-const urls = htmlFileNames.map((htmlFileName) => {
-  const text = fs.readFileSync(htmlFileName, 'utf8');
-  // Set オブジェクトへの変換による重複排除
-  const urls
-      = Array.from(new Set(text.match(/https:\/\/job\.mynavi\.jp\/24\/pc\/search\/corp.*?\/is\.html/g)));
-  return urls;
-}).flat();
+// is.html の URL を assets/ 直下の html ファイルから抜き出す
+const urls = readdirSync('./assets')
+    .map((htmlFileName) => {
+      const text = readFileSync(`./assets/${htmlFileName}`, 'utf8');
+      // Set オブジェクトへの変換による重複排除
+      const urls
+          = Array.from(new Set(text.match(/https:\/\/job\.mynavi\.jp\/24\/pc\/search\/corp.*?\/is\.html/g)));
+      return urls;
+    }).flat();
 
 // csv-writer の初期化・カラムの設定
 const csvWriter = createObjectCsvWriter({
