@@ -27,7 +27,8 @@
 		"unional.vscode-sort-package-json",
 		"ChFlick.firecode",
 		"Gruntfuggly.todo-tree",
-		"GitHub.vscode-pull-request-github"
+		"GitHub.vscode-pull-request-github",
+		"esbenp.prettier-vscode"
 	]
     }
   },

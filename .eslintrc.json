@@ -1,0 +1,53 @@
+{
+  "env": {
+    "browser": true,
+    "es2020": true
+  },
+  "extends": "xo",
+  "parser": "@typescript-eslint/parser",
+  "overrides": [
+    {
+      "extends": [
+        "xo-typescript",
+        "plugin:prettier/recommended",
+        "prettier",
+        "plugin:import/recommended",
+        "plugin:import/typescript"
+      ],
+      "files": ["*.ts"]
+    }
+  ],
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
+  "rules": {
+    "capitalized-comments": "off",
+    "no-irregular-whitespace": "off",
+    "import/extensions": "off",
+    "import/no-extraneous-dependencies": "off",
+    "import/no-unresolved": "off",
+    "import/order": [
+      "warn",
+      {
+        "alphabetize": {
+          "caseInsensitive": true,
+          "order": "asc"
+        },
+        "groups": [
+          "builtin",
+          "external",
+          "internal",
+          "parent",
+          "sibling",
+          "index",
+          "object",
+          "type"
+        ],
+        "newlines-between": "always",
+        "pathGroupsExcludedImportTypes": []
+      }
+    ],
+    "import/prefer-default-export": "off"
+  }
+}
