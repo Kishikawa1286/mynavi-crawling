@@ -7,10 +7,12 @@
   },
   "type": "module",
   "scripts": {
-    "start": "yarn tsc && node ./dist/script.js"
+    "start": "yarn tsc && node ./dist/script.js",
+    "start2": "yarn tsc && node ./dist/script2.js"
   },
   "dependencies": {
     "csv-writer": "^1.6.0",
+    "csv-parse": "^5.3.3",
     "node-fetch": "^3.3.0"
   },
   "devDependencies": {

@@ -1,7 +1,8 @@
 import { createObjectCsvWriter } from 'csv-writer';
 import { readFileSync, readdirSync } from 'fs';
-import { url } from 'inspector';
 import fetch from 'node-fetch';
+
+import { sequentialExcution } from './sqeMap.js';
 
 // corpId を会社概要ページから抜き出す
 // Set への変換で唯一性担保
@@ -19,9 +20,16 @@ const corpIds = Array.from(
       .flat()
   )
 );
-const urls = corpIds.map(
+const internshipPageUrls = corpIds.map(
   (corpId) => `https://job.mynavi.jp/24/pc/search/corp${corpId}/is.html`
 );
+
+type RecordRow = {
+  company: string;
+  email: string;
+  contact: string;
+  url: string;
+};
 
 // Csv-writer の初期化・カラムの設定
 const csvWriter = createObjectCsvWriter({
@@ -34,72 +42,82 @@ const csvWriter = createObjectCsvWriter({
   ]
 });
 
+type PageData = {
+  text: string;
+  url: string;
+};
+
+const fetchPage = async (url: string) => {
+  try {
+    console.log(`Fetching ${url}`);
+    const res = await fetch(url);
+    const text = await res.text();
+    return { text, url };
+  } catch (e) {
+    return null;
+  }
+};
+
+const fetchPages = async (urls: string[]) => {
+  return (await sequentialExcution(urls, fetchPage, 200)).filter(
+    (item) => item
+  ) as PageData[];
+};
+
 const fetchInternshipDetailPage = async (
   internshipPageHtmlTexts: string[]
-): Promise<string[]> => {
+): Promise<PageData[]> => {
   const urls = internshipPageHtmlTexts
     .map((text) => {
       const matchArray =
-        /(\/24\/pc\/corpinfo\/displayInternship\/index\?corpId=.*?&optNo=.*?)&"/.exec(
+        /(\/24\/pc\/corpinfo\/displayInternship\/index\?corpId=.*?optNo=.*?)"/.exec(
           text
         );
       if (!matchArray) return null;
       if (!matchArray[1]) return null;
-      // &" を含まない部分の最初のグループを抽出
-      return `https://job.mynavi.jp${matchArray[1]}`;
-      // Null を弾く
+      return `https://job.mynavi.jp${matchArray[1].replace('amp;', '')}`;
     })
+    // Null を弾く
     .filter((url) => url) as string[];
-  
-  const responses = (
-    await Promise.all(urls.map(async (url) => fetch(url).catch(() => null)))
-  ).filter((res) => res) as Response[];
-  // インターンシップ詳細ページの html テキスト
-  const htmlTexts = await Promise.all(responses.map(async (res) => res.text()));
-  return htmlTexts;
+
+  console.log(urls);
+
+  return (await Promise.all(urls.map(async (url) => fetchPage(url)))).filter(
+    (pageData) => pageData
+  ) as PageData[];
 };
 
 (async () => {
-  const internshipPageResponseArray = (
-    await Promise.all(urls.map(async (url) => fetch(url).catch(() => null)))
-  ).filter((res) => res) as Response[];
-  // インターンシップページの html テキスト
-  const internshipPageHtmlTexts = await Promise.all(
-    internshipPageResponseArray.map(async (res) => res.text())
+  const internshipPageHtmlTexts = await fetchPages(internshipPageUrls);
+
+  const internshipDetailPageHtmlTexts = await fetchInternshipDetailPage(
+    internshipPageHtmlTexts.map((pageData) => pageData.text)
   );
 
-  console.log(internshipPageHtmlTexts.length)
-
-  // const internshipDetailPageHtmlTexts = await fetchInternshipDetailPage(internshipPageHtmlTexts);
-
-  /*
-  Const internshipResponseArray
-      = (await Promise.all(internshipUrls.map(((url) => fetch(url).catch(() => null))))).filter((res) => res);
-  // インターンシップ詳細ページの html テキスト
-  const internshipHtmlTexts
-      = await Promise.all(internshipResponseArray.map((res) => res.text()));
-
-  const records = internshipHtmlTexts.map((text, i) => {
-    const url = internshipUrls[i];
-    // h1　に社名が入っている
-    const companyMatchArray = text.match(/<h1>(.*?)<\/h1>/);
-    if (!companyMatchArray) return null;
-    if (!companyMatchArray[1]) return null;
-    const company = companyMatchArray[1];
-    const contactMatchArray
-        = text.match(/<td class="sameSize" id="inquiry">(.*?)<\/td>/);
-    if (!contactMatchArray) return null;
-    if (!contactMatchArray[1]) return null;
-    // csv が壊れないように , は消す
-    // <br /> は消す
-    const contact = contactMatchArray[1].replaceAll('<br/>', ' ').replaceAll(',', ' ');
-    const emailMatchArray = contact.match(/[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+/);
-    if (!emailMatchArray) return null;
-    const email = emailMatchArray[0];
-    return { company, email, contact, url };
-  // null を弾く
-  }).filter((record) => record);
+  const records = internshipDetailPageHtmlTexts
+    .map((pageData) => {
+      const { text, url } = pageData;
+      // h1　に社名が入っている
+      const companyMatchArray = /<h1>(.*?)<\/h1>/.exec(text);
+      if (!companyMatchArray) return null;
+      if (!companyMatchArray[1]) return null;
+      const company = companyMatchArray[1];
+      const contactMatchArray =
+        /<td class="sameSize" id="inquiry">(.*?)<\/td>/.exec(text);
+      if (!contactMatchArray) return null;
+      if (!contactMatchArray[1]) return null;
+      // csv が壊れないように , は消す
+      // <br /> は消す
+      const contact = contactMatchArray[1]
+        .replace('<br/>', ' ')
+        .replace(',', ' ');
+      const emailMatchArray = /[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+/.exec(contact);
+      if (!emailMatchArray) return null;
+      const email = emailMatchArray[0];
+      return { company, email, contact, url };
+      // null を弾く
+    })
+    .filter((record) => record) as RecordRow[];
 
   await csvWriter.writeRecords(records);
-  */
 })();
